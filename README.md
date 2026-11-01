@@ -2,13 +2,14 @@
 
 Practical tools and walkthroughs for reviewing a home **Ubiquiti UniFi** network with Codex: security configuration, WiFi reliability, and performance evidence.
 
-Three workflows grew out of a real console investigation. Each starts with reading configuration; changes and active tests are separate decisions.
+Four workflows grew out of a real console investigation. Each starts with reading configuration; changes and active tests are separate decisions.
 
 | Workflow | Best for | What you need |
 | --- | --- | --- |
 | **[Chrome: inspect the console directly](docs/chrome.md)** | Easiest setup; settings that the API doesn't expose | A supported Codex/ChatGPT desktop browser connection, official Chrome extension, and your signed-in console |
 | **[Safari + local API collector](docs/safari-api.md)** | Structured, repeatable evidence without connecting a browser | Safari for manual console setup; Python 3.10+; a local Network API key and console network access |
 | **[Local script → Codex handoff](docs/local-handoff.md)** | Collect first, analyze later; no browser automation or Codex access to the console | Python 3.10+, local Network API access, then Codex only when you choose to share the reviewed bundle |
+| **[Local MCP server](docs/mcp.md)** | Let Codex request fresh configuration and passive telemetry through named tools | Python 3.11+, optional MCP SDK, local API setup, and an MCP host |
 
 The Safari workflow **does not automate or scrape Safari**. Python queries the local official API, and Safari supplies the settings/setup UI. Screenshots or selected exports fill API coverage gaps. Chrome can reduce that manual work by reading signed-in page content directly. The local-handoff path uses the same collector with guided setup and produces a private evidence package and analysis prompt; it does not contact OpenAI or require an OpenAI API key.
 
@@ -68,6 +69,8 @@ python3 scripts/unifi_audit.py telemetry --samples 3 --interval 15
 `check` reads application info and sites. `collect` gathers documented configuration and current device statistics. `telemetry` takes bounded passive statistics samples; it does not run speed tests or RF scans. All authenticated API requests use **GET**, validate the certificate pin before loading the key, and remain on the configured local origin. No SSH access or inbound internet port is required.
 
 ## What's included
+
+An optional **[local stdio MCP server](docs/mcp.md)** reuses the collector's pinned, GET-only client. It exposes five read tools for status, sites, fixed configuration collections/details, and passive device statistics. It opens no inbound port and includes no network-changing actions. Follow the guide to install, test, register with Codex, and try example prompts. The standalone collector still needs no third-party dependencies.
 
 - Version-aware, paginated collection of devices, clients, networks, SSIDs, firewall zones/policies, ACLs, DNS policies, traffic lists, WAN and VPN overviews, and RADIUS profile overviews, where documented and available.
 - Current device resource usage and radio retry statistics, where returned.

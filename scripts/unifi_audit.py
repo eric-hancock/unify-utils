@@ -265,7 +265,8 @@ def build_handoff(state, collection, context_file=None):
 
 
 class Collector:
-    def __init__(self, state, site_id=None, budget=500):
+    def __init__(self, state, site_id=None, budget=500, output=None):
+        self.output = output
         self.state = state
         self.config = read_json(state / "config.json")
         validate_origin(self.config["console"])
@@ -322,7 +323,7 @@ class Collector:
                       "template": template, "http_status": response.status, "response": payload}
             self.records.append(record)
             write_json(self.folder / f"{len(self.records):03d}.json", record)
-            print(f"{len(self.records):03d}: HTTP {response.status} {template}", flush=True)
+            print(f"{len(self.records):03d}: HTTP {response.status} {template}", flush=True, file=self.output)
             if response.status in (401, 429) or response.status >= 500:
                 raise ValueError(f"Stopped on HTTP {response.status}; partial evidence retained.")
             if response.status != 200:
@@ -412,7 +413,7 @@ class Collector:
             "requests": len(self.records), "methods": ["GET"], "counts": self.counts,
             "coverage_gaps": self.gaps,
         })
-        print(f"Private evidence: {self.folder}")
+        print(f"Private evidence: {self.folder}", file=self.output)
 
 
 def main(argv=None):
