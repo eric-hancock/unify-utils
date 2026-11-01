@@ -1,0 +1,12 @@
+# All generated configuration, credentials, certificate pins, and evidence.
+.local/
+.secrets/
+private-evidence/
+console-certificate.*
+UNIFI-AUDIT-REPORT.md
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+.env
+.env.*
