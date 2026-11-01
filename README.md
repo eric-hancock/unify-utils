@@ -32,6 +32,8 @@ Review the generated evidence and context, then give **only that handoff folder*
 3. Follow the **[assessment method](docs/assessment.md)** and use the **[report template](examples/report-template.md)** to separate observations, inferences, and untested behavior.
 4. Read **[evidence privacy](docs/privacy.md)** before sharing output. Redacted evidence is still private network data.
 
+Ready-to-use prompts: **[MCP extraction and scenario audits](examples/mcp-audit-prompts.md)** or **[offline evidence-bundle analysis](examples/codex-analysis-prompt.md)**. The scenario pack covers security, IoT isolation, coverage, throughput, device compatibility, and before/after changes.
+
 ## Local API quick start
 
 The Python utility has **no third-party dependencies**. Run commands from the cloned repository. Substitute your actual console origin and **installed Network version**; `10.6.109` is the version used in the original investigation, not a claim about the latest release.
