@@ -4,6 +4,14 @@ This fourth workflow lets Codex request fresh UniFi configuration and passive te
 
 The first version is **read-only network management**: inventory, inspection, and troubleshooting. It has no configuration writes, restart/reconnect actions, firmware updates, RF scans, or speed tests. Use the console for separately authorized changes. An MCP connection does not bypass the Network API's coverage gaps: this installation's legacy firewall rules still require the console UI.
 
+## Token use compared with Chrome
+
+**For supported API questions, the MCP approach is generally expected to use fewer model tokens than navigating and debugging Chrome.** A named call retrieves structured configuration or telemetry directly. Browser work can require repeated DOM/accessibility snapshots, screenshots, menu discovery, selector troubleshooting, and retries before reaching the same evidence. MCP avoids that navigation overhead, especially during repeat audits after setup.
+
+This project has **not measured a token-saving percentage**. The comparison is an expectation based on the workflows, not a benchmark, guaranteed cost reduction, or claim that MCP responses are always smaller. Full client lists, large JSON payloads, repeated polling, tool definitions, and exhaustive audits still consume context. One targeted browser inspection can be cheaper than an unnecessarily broad API extraction.
+
+Start with status and the collections relevant to the question; fetch details only where needed. Reuse suitably recent evidence, state its age, and request fresh reads when current state matters. Use Chrome selectively for unsupported settings and legacy firewall data. Do not treat reduced collection scope as a complete audit or sacrifice evidence needed to support a finding. The [scenario prompts](../examples/mcp-audit-prompts.md) help scope those reads.
+
 ## How it works
 
 ```text

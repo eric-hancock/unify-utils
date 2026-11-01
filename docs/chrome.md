@@ -2,6 +2,8 @@
 
 This workflow lets Codex read your signed-in UniFi pages, navigate settings, and extract tables directly. It avoids repeated screenshot pasting, particularly when the official API lacks a setting.
 
+For repeat investigations of data available through the API, prefer the **[local MCP server](mcp.md)**. It is generally expected to consume fewer model tokens than navigating and debugging Chrome because it avoids repeated page snapshots, menu discovery, and browser-interaction retries. Token savings have not been benchmarked and depend on the task and response size. Chrome remains useful for API coverage gaps, including legacy firewall rules; use both workflows when needed.
+
 ## 1. Connect the supported browser
 
 OpenAI's [browser-extension documentation](https://learn.chatgpt.com/docs/chrome-extension) describes this setup. Availability and menu names depend on app rollout and workspace policy. It names the ChatGPT desktop settings and supports Work/Codex chats; do not assume every Codex app build has identical menus.

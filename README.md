@@ -9,9 +9,11 @@ Four workflows grew out of a real console investigation. Each starts with readin
 | **[Chrome: inspect the console directly](docs/chrome.md)** | Easiest setup; settings that the API doesn't expose | A supported Codex/ChatGPT desktop browser connection, official Chrome extension, and your signed-in console |
 | **[Safari + local API collector](docs/safari-api.md)** | Structured, repeatable evidence without connecting a browser | Safari for manual console setup; Python 3.10+; a local Network API key and console network access |
 | **[Local script → Codex handoff](docs/local-handoff.md)** | Collect first, analyze later; no browser automation or Codex access to the console | Python 3.10+, local Network API access, then Codex only when you choose to share the reviewed bundle |
-| **[Local MCP server](docs/mcp.md)** | Let Codex request fresh configuration and passive telemetry through named tools | Python 3.11+, optional MCP SDK, local API setup, and an MCP host |
+| **[Local MCP server](docs/mcp.md)** | Repeat audits with focused API reads; generally lower token use than navigating/debugging Chrome | Python 3.11+, optional MCP SDK, local API setup, and an MCP host |
 
 The Safari workflow **does not automate or scrape Safari**. Python queries the local official API, and Safari supplies the settings/setup UI. Screenshots or selected exports fill API coverage gaps. Chrome can reduce that manual work by reading signed-in page content directly. The local-handoff path uses the same collector with guided setup and produces a private evidence package and analysis prompt; it does not contact OpenAI or require an OpenAI API key.
+
+**For repeated investigations, prefer MCP for data the API exposes.** It is generally expected to use fewer model tokens than navigating and debugging the Chrome console: named tools retrieve structured data directly, avoiding repeated page snapshots, screenshots, menu discovery, and browser-interaction retries. This is a workflow expectation, not a measured benchmark or guaranteed saving; large API responses and broad audits can still consume substantial context. Use Chrome to fill API gaps, such as legacy firewall rules and some client/radio settings. See [token-use considerations](docs/mcp.md#token-use-compared-with-chrome).
 
 ## Just collect locally and hand the results to Codex
 
