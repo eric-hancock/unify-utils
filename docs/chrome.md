@@ -1,85 +1,66 @@
-# Chrome: the easier console inspection path
+# Inspecting the console with Chrome
 
-This workflow lets Codex read your signed-in UniFi pages, navigate settings, and extract tables directly. It avoids repeated screenshot pasting, particularly when the official API lacks a setting.
+Use a connected browser for settings the API doesn't expose, such as legacy firewall rules. For repeated configuration and statistics reads, the [MCP server](mcp.md) avoids navigating the console each time.
 
-For repeat investigations of data available through the API, prefer the **[local MCP server](mcp.md)**. It is generally expected to consume fewer model tokens than navigating and debugging Chrome because it avoids repeated page snapshots, menu discovery, and browser-interaction retries. Token savings have not been benchmarked and depend on the task and response size. Chrome remains useful for API coverage gaps, including legacy firewall rules; use both workflows when needed.
+## Connect the browser
 
-## 1. Connect the supported browser
+Follow the official [browser-extension setup](https://learn.chatgpt.com/docs/chrome-extension) for your app. Availability and menu labels vary by app and workspace.
 
-OpenAI's [browser-extension documentation](https://learn.chatgpt.com/docs/chrome-extension) describes this setup. Availability and menu names depend on app rollout and workspace policy. It names the ChatGPT desktop settings and supports Work/Codex chats; do not assume every Codex app build has identical menus.
+1. Look for **Settings → Computer Use → Chrome** and follow the extension setup.
+2. Confirm the browser connection is enabled; the setup may show **Manage** once installed.
+3. In the same Chrome profile, open your local console or Site Manager and sign in.
+4. Select **@Chrome** in chat, if available, and approve access to the console site when prompted.
 
-1. In the desktop app, look for **Settings → Computer Use**.
-2. Select **Chrome** and follow the required browser-plugin setup.
-3. Use **Install** to obtain the official extension through the app's store link.
-4. Return to Computer Use and confirm Chrome shows **Manage** and is enabled.
-5. In the same Chrome profile, open your console and sign in yourself. Use the local HTTPS origin if accessible, or your site's console through Site Manager.
-6. In the chat, select **@Chrome**, or mention the console tab if available.
-7. Approve access to the specific console site when prompted. A site approval and the browser's installation permissions are separate controls.
+Ask Codex to list the available tabs and identify the intended UniFi site before inspecting it. A Safari login doesn't sign you into Chrome. If the browser connection isn't available, use the [local API workflow](safari-api.md).
 
-If the setting is absent, consult the current documentation for your app/workspace. Installing unrelated scraping extensions or enabling broad permissions is not a prerequisite for the API workflow.
+Sign in and handle MFA yourself. Keep passwords, recovery codes, and session cookies out of chat. Review certificate warnings yourself before continuing.
 
-The documented extension browsers include Chrome, Edge, Brave, Opera, and Vivaldi. Safari is not listed. A Safari login does not automatically become a Chrome login, and installing the extension does not by itself prove that the current chat has connected.
-
-## 2. Give a precise read-only brief
+## Start with a focused request
 
 ```text
 @Chrome Inspect my signed-in home UniFi console read-only.
 
-Review WiFi/security settings, networks, existing firewall rules, port
-forwarding, UPnP, WAN/LAN IPv6, threat protection, administrator roles,
-and the available radio/client health metrics.
+Check WiFi bands/security, SSID-to-network assignments, existing firewall
+rules, port forwarding, UPnP, IPv6, and available radio/client statistics.
+Use the repository's report template. Record the paths that work in my
+installed version and flag anything you can't verify.
 
-Do not change settings, submit configuration forms, create credentials,
-install certificates, update firmware/engines, restart devices, migrate
-the firewall, run RF scans, or start speed/load tests.
-
-Keep secrets out of evidence. Document the exact paths that work for
-my installed version. Distinguish configuration from tested behavior.
-Save a Markdown report using this repository's report template.
+Do not save settings, create keys, update software, restart devices,
+migrate the firewall, run RF scans, or start speed tests.
+Keep credentials and account details out of saved evidence.
 ```
 
-The initial connection check should list available browser tabs and identify the intended UniFi site. If no signed-in console is available, sign in yourself. Passwords and MFA/recovery codes do not need to be placed in chat. Browser security warnings require your own review; the agent should hand control back rather than bypass them.
+Add the actual problem: affected room, device, time of day, and what fails. The [console map](console-map.md) lists the paths used on the tested release.
 
-## 3. Read configuration through observed navigation
+## Read the saved settings
 
-Use the [console map](console-map.md) as a starting point, verifying labels against the live page.
-
-| Review | Evidence to record |
+| Area | Useful details |
 | --- | --- |
-| Inventory | Model, OS/application/device versions, topology, uplink speed |
-| Networks and SSIDs | VLAN assignments, isolation, authentication, PMF, enabled bands |
-| Firewall | All IPv4/IPv6 categories, rule order, actions, state conditions, exceptions |
-| Exposure | Port-forward count/details, active-WAN UPnP, VPN and remote management |
-| IPv6 | WAN mode/address/prefix delegation and each LAN's interface type |
-| Protection | Actual intrusion-prevention selection, not just subscription tier/signature count |
-| Administration | Visible roles and access scope; mark MFA unknown if the page doesn't show it |
-| WiFi health | Radio signal, interference, airtime, retries, band counts and client details |
+| Devices | Models, installed versions, topology, AP uplink speed |
+| WiFi/networks | Bands, authentication, PMF, VLAN assignments, isolation |
+| Firewall | IPv4/IPv6 categories, rule order, actions, state conditions, exceptions |
+| Exposure | Port forwards, active-WAN UPnP, VPN, remote management |
+| IPv6 | WAN mode/prefix delegation and each LAN's interface type |
+| Protection/admin | Selected intrusion-prevention state and visible administrator roles |
+| WiFi health | Client signal, retries, airtime, interference, band and AP |
 
-Open existing detail panels to read their values, then close them. A page may open an empty creation form automatically; defaults there are **not applied policy**. Leave without submitting.
+Open existing detail panels and close them without saving. An empty creation form shows defaults, not an applied policy. If extracted text lists both choices, inspect the screenshot or selected state rather than clicking a control to find its value.
 
-For controls whose text extraction lists both choices without marking a selection, inspect the screenshot or checked/selected accessibility state. Do not click an option just to discover its value. Virtualized tables may expose only rendered rows; capture appropriate views or use the official API before claiming completeness.
+Tables may load only visible rows. Scroll through the list or use the API before treating it as a complete inventory. Mark MFA or other hidden settings unknown when the page doesn't show them.
 
-The agent should use the browser plugin's supplied client and instructions. A portable guide cannot prescribe its internal import paths: installed plugin versions and runtime APIs change. Do not copy runtime paths from someone else's machine or extract browser cookies to work around a failed connection.
+## Save useful notes
 
-## 4. Keep useful evidence and a readable walkthrough
+Use the [report template](../examples/report-template.md). Record the date/time/timezone, installed versions, page path, selected filter, and relevant values. Keep screenshots and raw page captures private; see [privacy](privacy.md).
 
-For each observation, record date/time/timezone, installed versions, selected category/filter, page label, and the relevant selected values or table rows. Capture only what is needed. Store raw DOM snapshots/screenshots privately; account names, IPs, client names, and console identifiers can appear in them.
+Separate what the console shows from what you've tested. A configured VLAN doesn't prove isolation works, and a good experience score doesn't establish coverage upstairs. Use the [assessment guide](assessment.md) for follow-up measurements.
 
-Write two documents locally:
+## Troubleshooting
 
-- **Process guide:** actual clicks, icon locations, terminology, and recovery when menus differ.
-- **Assessment report:** observed settings, supporting evidence references, implications, confidence, gaps, and recommended validation.
+| Problem | Next step |
+| --- | --- |
+| Mention works but no browser access | Check the browser profile, extension, and app connection; reconnect using the official setup instructions |
+| Only web search is available | Use the browser connection or local API; public search can't read your signed-in console |
+| Login expired or wrong site | Sign in yourself or select the intended site before continuing |
+| Legacy firewall API fails | Inspect existing rules in the UI; leave firewall migration alone |
 
-Use the [report template](../examples/report-template.md). Replace specific account/site identifiers before making anything public.
-
-## 5. Troubleshooting
-
-- **Mention accepted, but no browser access:** confirm Chrome is running, the extension is enabled in the same profile, and the app shows Manage. Reconnect/restart as described in the official documentation. The agent should use supplied plugin diagnostics rather than repairing native-host configuration itself.
-- **Only a public search tool is available:** that tool cannot read your authenticated local console. Use the browser connection or the [API workflow](safari-api.md).
-- **Login expired:** reauthenticate yourself; do not send session cookies to chat.
-- **Unexpected account/site:** stop navigation and select the intended site.
-- **Legacy firewall API fails:** read the existing UI rules; do not migrate firewall modes merely to expose an endpoint.
-
-## Completion
-
-Confirm no configuration changed, record anything untested, and leave the console on a useful inspected page. Remove browser site permission later if you no longer want it. Decide on configuration changes only after a concrete proposal with expected benefit, interruption, rollback, and retest.
+Remove the browser's site permission when you no longer need it.

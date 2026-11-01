@@ -1,64 +1,57 @@
-# Assessment method
+# Finding what needs changing
 
-The useful output is an evidence-backed explanation of the network, its limitations, and specific next actions. Collecting data alone is not an assessment, and a configuration review is not proof of effective security or coverage.
+Start with a problem you can reproduce: calls dropping upstairs, an IoT device losing contact, or WiFi running much slower than Ethernet. A configuration snapshot helps narrow it down, but you still need to test where the problem happens.
 
-## 1. Record purpose and constraints
+## Describe the house and the problem
 
-Ask for floors/layout, AP positions, wired/wireless backhaul, ISP plan, important applications, affected rooms/devices/times, and planned changes. Identify which devices are trusted, IoT, or guests, and what printers/speakers/casting/control services must remain reachable.
+Record floors, AP positions, wired or wireless backhaul, ISP plan, affected devices/rooms, and when it happens. Note which devices belong on trusted, IoT, or guest networks, including printers, speakers, and casting devices that need to remain reachable.
 
-State the authorized scope. Start read-only. Separately authorize load tests, client-to-client probing, external exposure checks, RF scans, restarts, updates, and configuration changes. Confirm backup/recovery access before changes that can disconnect management.
+Start with reads. Agree on active tests and configuration changes separately. Before a change that could disconnect you, save the original settings and check that you can recover access to the console.
 
-## 2. Map evidence to questions
+## Collect the relevant data
 
-| Question | Useful evidence | What it doesn't prove |
+| Question | Look at | Follow-up needed |
 | --- | --- | --- |
-| What is installed? | Models, versions, topology, supported states | Complete lifecycle/advisory status |
-| Are IoT/guests separated? | SSID-to-network mapping, VLANs, isolation, ordered firewall/ACL policies | Actual allowed/blocked communication |
-| What is exposed? | WAN rules, forwards, UPnP, VPN, remote-management settings | External reachability from a different network |
-| Is IPv6 active and protected? | WAN address/prefix settings, LAN interface type, IPv6 rules | Per-client reachability or absence of link-local IPv6 |
-| Is the radio healthy? | Per-band interference, airtime, retries, client signal and rates | Every room's usable service |
-| Is backhaul limiting performance? | Negotiated AP/switch link speed, errors, mesh topology | Measured end-to-end capacity |
-| Are clients stable? | Time-bounded associations/disconnections and application symptoms | Weeks of reliability from a brief snapshot |
+| What's installed? | Models, versions, topology, uplink speeds | Check support/advisories for those versions if relevant |
+| Are guests and IoT separated? | SSID/network mapping, VLANs, isolation, ordered IPv4/IPv6 rules | Test intended allowed and blocked connections |
+| What's exposed? | Port forwards, UPnP, VPN, remote management | Check reachability from another network if needed |
+| Is IPv6 in use? | WAN address/prefix, LAN interface type, IPv6 policy | Check client connectivity |
+| Why is WiFi unreliable? | Client signal, AP/band, retries, airtime, interference | Repeat tests in affected rooms |
+| Is backhaul a bottleneck? | Negotiated link speed, errors, mesh links | Compare against a wired baseline |
 
-Keep a coverage matrix: **observed**, **not exposed**, **permission denied**, **not tested**, or **not applicable with evidence**. Treat empty successful lists differently from failed endpoints. The collector manifests preserve that distinction.
+For missing data, distinguish **not exposed**, **permission denied**, and **not tested**. A successful empty list is different from a failed endpoint; check the collector manifest. Legacy firewall API errors often need a UI check using the [console map](console-map.md).
 
-## 3. Interpret WiFi measurements carefully
+## Read WiFi statistics in context
 
-- Radio retries are not end-to-end packet loss. Percentages without the observation window and traffic denominator cannot be combined into a household failure rate.
-- Average signal across different clients is not a same-client comparison between bands. Weak outliers may be hidden by a reasonable average.
-- “Excellent” experience and advertised PHY rates are clues, not measured throughput or proof of good calls.
-- Zero utilization/retries may reflect an idle band. A quiet band can still have weak coverage.
-- Client counts alone do not establish capacity overload. Devices differ in airtime demand and capability.
-- Determine which metric actually covers 24 hours; a traffic-usage column's label does not necessarily apply to adjacent averages.
-- One AP can have multiple bands but cannot provide inter-AP roaming. Floors, walls, placement, and client transmit capability matter.
+- Retries aren't end-to-end packet loss. Keep the observation window and traffic volume with the number.
+- Average signal can hide one weak client. Compare the same device in the same place before judging bands or APs.
+- PHY rates and experience scores aren't measured throughput or call quality.
+- A quiet or idle band can still have poor coverage. Client counts alone don't show airtime demand.
+- Check each metric's time window; a nearby “24 hours” label may apply only to traffic usage.
+- One AP can't roam clients to another AP. Placement, walls, floors, and the client's own radio all matter.
 
-See [UniFi's connectivity guidance](https://help.ui.com/hc/en-us/articles/221029967-Optimizing-WiFi-Connectivity-and-Reducing-Latency) and [WiFi troubleshooting](https://help.ui.com/hc/en-us/articles/32064585817495-WiFi-Troubleshooting-Guide).
+## Test in the rooms you use
 
-## 4. Measure real performance
+1. Pick a near-AP location and the problem locations. Use the same client for comparisons.
+2. Record time/timezone, client model, AP/band, signal, VPN state, and background traffic.
+3. Get an Ethernet baseline, including negotiated link speed.
+4. Compare internet tests with local throughput to a wired LAN server, if you've agreed to run one. Keep that server's port off the internet.
+5. Repeat at a busy time. Record latency under load, disconnects, and call quality as well as speed.
 
-1. Choose representative clients and locations, including near-AP and problem areas.
-2. Record time/timezone, client model, SSID/AP/band, signal, VPN state, background load, and test destination.
-3. Obtain a wired baseline if possible, recording the Ethernet link speed.
-4. Compare internet performance and, after authorization, local throughput against a wired LAN test server. Do not expose its port to the internet.
-5. Use WiFiman Mobile for location-specific latency/speed/signal evidence where supported. Desktop WiFiman does not offer the same survey features. See [Using WiFiman](https://help.ui.com/hc/en-us/articles/205204150-Using-WiFiman).
-6. Repeat comparable tests, including a busy period. Record ranges, disconnects, call quality, and latency under load—not just the best speed result.
+WiFiman Mobile can help with location-specific measurements where supported; the desktop app has different capabilities. See [Using WiFiman](https://help.ui.com/hc/en-us/articles/205204150-Using-WiFiman).
 
-| Time/timezone | Location | Client | AP/band | Signal | LAN down/up | Internet down/up | Latency/loss destination | Conditions |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pending | | | | | | | | |
+| Time/location | Client | AP/band | Signal (dBm) | LAN down/up (Mbps) | Internet down/up (Mbps) | Latency/loss and destination | Conditions |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| | | | | | | | |
 
-Use explicit units: dBm, Mbps, ms, and percent. If an inter-AP roam test applies, walk the same route and record transitions. If only one AP exists, mark that test not applicable.
+With several APs, walk the same route and record handoffs. Skip roaming tests if there's only one AP.
 
-## 5. Turn evidence into changes
+## Change one thing, then retest
 
-For each proposal, state the trigger, expected benefit, compatibility concern, possible interruption, original settings, rollback, and a repeatable retest. Avoid changing channel, width, power, security, and VLAN assignments together; that obscures which change helped.
+For each proposed change, write down the reason, expected benefit, devices that might break, likely interruption, original value, and rollback. Retest with the same client, location, and workload.
 
-Example: if a single AP covers several floors and clients remain on weak 6 GHz, propose a reversible trial removing 6 GHz from the primary SSID or disabling it on an affected client where supported. Keep security and other radio settings unchanged, compare the same locations before/after, and restore if worse. This does not increase 5 GHz range or solve missing AP coverage. [Ubiquiti notes client preference for weak 6 GHz](https://help.ui.com/hc/en-us/articles/20407971377815-Getting-Started-with-6-GHz).
+For example, if an affected client sticks to weak 6 GHz across several floors, try disabling that band on the client where supported, or trial an SSID band change. Keep other radio/security settings fixed. Restore the setting if it doesn't help; band selection won't fix missing AP coverage.
 
-For IoT segmentation, inventory all devices rather than only the “IoT” SSID. Same-subnet traffic may not traverse the gateway's routed firewall. Plan VLAN boundaries, approved control/discovery paths, and IPv4/IPv6 policy together. Verify intended access with scoped tests after authorization.
+For IoT separation, inventory devices across all SSIDs. Two WiFi names can share one LAN, and same-subnet traffic may never reach the gateway firewall. Plan VLANs, discovery/control exceptions, and IPv4/IPv6 rules together, then test both allowed and blocked paths.
 
-## 6. Finish and maintain the report
-
-Use the [template](../examples/report-template.md). Every finding should reference evidence and distinguish fact from inference. Mark remaining work explicitly. A useful final report includes both risk reduction and functionality/compatibility consequences.
-
-Revoke temporary credentials, stop temporary test servers, and record what changed. No recurring collection or automatic tuning is needed to complete a one-time review. Reassess when cabling, AP count/placement, major firmware, or the household device mix changes.
+Use the [report template](../examples/report-template.md) to record findings and unresolved questions. Keep evidence references with each finding and label guesses as guesses. After changes, check the household devices that depend on discovery or local control. Revisit the setup after moving APs, changing cabling, or making major software changes.

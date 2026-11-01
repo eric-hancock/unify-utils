@@ -1,28 +1,22 @@
-# Evidence, credentials, and publication
+# Keeping network data private
 
-## Local files are private by default
+## Local storage
 
-The utility stores configuration, the API key, certificate pin, downloaded specification, and collected evidence in `.local/`. This directory is ignored by Git. Files created by the utility use mode 600; directories use mode 700. POSIX permissions provide the intended protection on macOS/Linux; Windows ACL behavior is not validated by this project.
+The scripts keep the API key, console configuration, certificate pin, API spec, and evidence in `.local/`, which is ignored by Git. Files use mode 600 and directories use mode 700 on macOS/Linux. Windows ACL behavior hasn't been validated.
 
-These files are plaintext. Other processes running as your user, backups, cloud-sync tools, or administrators may still access them. `.gitignore` is not encryption and does not remove an already tracked file or a previously published secret.
+These files are plaintext. Your backups, sync tools, and other processes running as your user can still read them. If you choose a custom state directory, keep it outside published files or add it to the relevant ignore rules.
 
-## Redaction is limited
+## What redaction leaves behind
 
-Before writing JSON, the collector removes values under credential-like keys such as password, passphrase, privateKey, token, and sharedSecret, and replaces exact API-key occurrences. It discards non-JSON response bodies.
+The collector removes credential-like JSON fields, including passwords, tokens, private keys, and shared secrets. It also replaces exact API-key occurrences and discards non-JSON response bodies.
 
-This is **not an anonymizer or complete secret detector**. Output can still contain:
+Evidence still contains IP/MAC addresses, SSIDs, names, UUIDs, topology, policy descriptions, and usage. Unexpected field names or encodings can also hide secrets the redactor misses. Review the files before sharing them.
 
-- Public/private IPs, MAC addresses, UUIDs, SSIDs, hostnames, and device/user names.
-- DNS records, traffic lists, policy intent, topology, timestamps, and usage.
-- Sensitive values stored under unexpected field names or encoded in unexpected forms.
+The handoff ZIP excludes saved credentials and setup files, but isn't encrypted. Supplied context is copied verbatim. Browser screenshots can expose account details and form values; capture only the section you need. Keep configuration backups and support bundles private.
 
-Browser snapshots/screenshots can contain account names, emails, site identifiers, client activity, and unmasked form values. Avoid password/credential pages and collect only necessary fields. Configuration backups and support bundles need separate review; never attach them casually to a public issue.
+## Before committing or posting an issue
 
-## What belongs in the repository
-
-Publish reusable source, generic instructions, blank templates, and clearly fictional examples. Do not publish a real household report or screenshots by default. Use generic host placeholders and relative paths; do not preserve someone else's certificate pin as a setup default.
-
-Before a commit:
+Publish code, generic instructions, templates, and fictional examples. Keep household reports and raw evidence local.
 
 ```sh
 git status --short
@@ -31,14 +25,12 @@ git diff --cached
 git ls-files .local .secrets private-evidence
 ```
 
-The last command should show no generated private data. Also review filenames and newly added files; `git diff` alone does not show untracked files. If using a custom state directory, ensure it is outside your publication tree or ignored there too.
+The last command should print nothing. Review new files as well as diffs; untracked files don't appear in `git diff`. Ignoring a file doesn't remove it from Git history.
 
-If a key is accidentally shared, revoke it in UniFi immediately. Removing a working-tree file is insufficient: evaluate Git history, remote copies, logs, and attachments separately. Do not post an active credential to demonstrate an error.
+If you share a key accidentally, revoke it in UniFi immediately. Check repository history, remote copies, logs, and attachments for the leak as well.
 
-## Access boundaries
+## Access and cleanup
 
-- The collector is GET-only; the credential itself may have write authority.
-- A browser brief saying “read-only” does not remove administrator capabilities from the signed-in session.
-- Certificate pinning requires a deliberate initial trust decision. First-use trust does not independently verify identity.
-- Use scoped local access and short-lived credentials. Do not disable UI-account MFA or expose management to the internet for this workflow.
-- Revoke temporary access when finished and keep evidence only as long as needed.
+The collector and MCP server only make GET requests, but the key itself may permit writes elsewhere. A signed-in browser also retains your account's permissions. Use a dedicated key with a short expiry, keep MFA enabled, and keep console management off the public internet.
+
+Revoke temporary keys when finished. Remove MCP registration or browser site access if no longer needed, and delete old evidence when you no longer need it.
