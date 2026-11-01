@@ -20,6 +20,7 @@ import re
 import ssl
 import sys
 import time
+import zipfile
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import urlopen
 
@@ -39,6 +40,8 @@ DETAILS = (
     ("networks", "networkId"), ("wifi/broadcasts", "wifiBroadcastId"),
 )
 MAX_BYTES = 5_000_000
+MAX_BUNDLE_BYTES = 50_000_000
+PROJECT = Path(__file__).resolve().parents[1]
 
 
 def utc_now():
@@ -124,6 +127,8 @@ def initialize(state, origin, version):
 
 
 def establish_trust(state, expected, tofu):
+    if bool(expected) == bool(tofu):
+        raise ValueError("Supply a nonempty expected fingerprint or explicitly select trust on first use.")
     config = read_json(state / "config.json")
     pin_path = state / "certificate.json"
     if pin_path.exists() or pin_path.is_symlink():
@@ -180,6 +185,83 @@ def fetch_spec(state):
         raise ValueError("Downloaded document is not the expected Network OpenAPI specification.")
     write_new(state / "openapi.json", json.dumps(spec, indent=2) + "\n")
     print(f"Saved public API specification for Network {version}.")
+
+
+def build_handoff(state, collection, context_file=None):
+    """Offline export: whitelist evidence JSON, never traverse the state directory."""
+    collection = Path(collection)
+    if collection.is_symlink() or not collection.is_dir():
+        raise ValueError("Expected an existing, non-symlink collection directory.")
+    manifest_path = collection / "manifest.json"
+    if manifest_path.is_symlink() or manifest_path.stat().st_size > MAX_BYTES:
+        raise ValueError("Invalid evidence manifest.")
+    manifest = scrub(read_json(manifest_path))
+    if not isinstance(manifest, dict) or manifest.get("status") not in (
+            "completed", "completed_with_gaps", "interrupted"):
+        raise ValueError("Expected a collector manifest with an explicit completion status.")
+    files = sorted(p for p in collection.iterdir() if re.fullmatch(r"\d{3}\.json", p.name))
+    if len(files) > 500 or manifest.get("requests") != len(files):
+        raise ValueError("Evidence record count differs from the manifest; export stopped.")
+    total_bytes = manifest_path.stat().st_size
+    records = []
+    for path in files:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_BYTES:
+            raise ValueError("Invalid evidence record; export stopped.")
+        total_bytes += path.stat().st_size
+        if total_bytes > MAX_BUNDLE_BYTES:
+            raise ValueError("Evidence exceeds the 50 MB handoff limit.")
+        record = read_json(path)
+        if not isinstance(record, dict) or record.get("method") != "GET":
+            raise ValueError("Expected GET-only collector records.")
+        records.append({**scrub(record), "evidence_file": path.name})
+    context = (PROJECT / "examples/handoff-context.md").read_text(encoding="utf-8")
+    if context_file:
+        context_file = Path(context_file)
+        if context_file.is_symlink() or context_file.stat().st_size > 100_000:
+            raise ValueError("Context must be a non-symlink text file of at most 100 KB.")
+        context = context_file.read_text(encoding="utf-8")
+    parent = state / "handoffs"
+    private_dir(parent)
+    destination = parent / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    private_dir(destination)
+    write_json(destination / "evidence.json", {
+        "format": "unify-utils-handoff-v1", "exported_at": utc_now(),
+        "manifest": manifest, "records": records,
+    })
+    write_new(destination / "CONTEXT.md", context)
+    write_new(destination / "CODEX-PROMPT.md", (PROJECT / "examples/codex-analysis-prompt.md").read_text(encoding="utf-8"))
+    write_new(destination / "report-template.md", (PROJECT / "examples/report-template.md").read_text(encoding="utf-8"))
+    status = manifest["status"]
+    write_new(destination / "HANDOFF.md", (
+        "# Private UniFi analysis handoff\n\n"
+        f"Collection status: **{status}**. Records: **{len(records)}**.\n\n"
+        "This is collected evidence, not a completed assessment. Read the coverage gaps in "
+        "evidence.json, especially if collection was interrupted. Missing data is not a healthy result.\n\n"
+        "Review every file before sharing. Known credential fields are redacted, but IP/MAC addresses, "
+        "SSIDs, names, topology, policy, and usage can remain. This bundle is not anonymous or encrypted.\n\n"
+        "For local Codex, point the chat to this directory and use CODEX-PROMPT.md. "
+        "For another environment, attach only this reviewed directory's files or its ZIP. "
+        "Never attach the parent .local directory, API key, browser profile, or configuration backup.\n\n"
+        "CONTEXT.md contains supplied context or a blank worksheet; the ZIP is a snapshot. "
+        "If you edit a file after export, the ZIP does not update. Rebuild with --context to package revised context.\n"
+    ))
+    names = ("HANDOFF.md", "evidence.json", "CONTEXT.md", "CODEX-PROMPT.md", "report-template.md")
+    write_json(destination / "checksums.json", {
+        name: hashlib.sha256((destination / name).read_bytes()).hexdigest() for name in names
+    })
+    archive_path = destination / "codex-handoff.zip"
+    fd = os.open(archive_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as output:
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for name in (*names, "checksums.json"):
+                entry = zipfile.ZipInfo(name)
+                entry.compress_type = zipfile.ZIP_DEFLATED
+                entry.external_attr = 0o600 << 16
+                archive.writestr(entry, (destination / name).read_bytes())
+    print(f"Private handoff folder: {destination}")
+    print(f"Optional upload archive: {archive_path}")
+    print(f"Collection status: {status}. Review evidence and context before sharing with Codex.")
+    return destination
 
 
 class Collector:
@@ -347,18 +429,27 @@ def main(argv=None):
     choices.add_argument("--trust-on-first-use", action="store_true", help="Explicitly trust the first certificate observed")
     commands.add_parser("save-key", help="Save the API key from a hidden interactive prompt")
     commands.add_parser("fetch-spec", help="Download the installed version's public OpenAPI spec")
-    for name in ("check", "collect", "telemetry"):
+    bundle = commands.add_parser("bundle", help="Package an existing collection offline; no key or network needed")
+    bundle.add_argument("--collection", type=Path, required=True)
+    bundle.add_argument("--context", type=Path, help="Optional context Markdown, copied verbatim; review before sharing")
+    for name in ("check", "collect", "telemetry", "handoff"):
         command = commands.add_parser(name)
         command.add_argument("--site-id", help="Required when more than one site is available")
         command.add_argument("--max-requests", type=int, default=500, choices=range(1, 501), metavar="1..500")
-        if name == "telemetry":
-            command.add_argument("--samples", type=int, default=3, choices=range(1, 11), metavar="1..10")
+        if name in ("telemetry", "handoff"):
+            minimum = 0 if name == "handoff" else 1
+            command.add_argument("--samples", type=int, default=3, choices=range(minimum, 11), metavar=f"{minimum}..10")
             command.add_argument("--interval", type=int, default=15, choices=range(15, 301), metavar="15..300")
+        if name == "handoff":
+            command.add_argument("--context", type=Path, help="Optional context Markdown, copied verbatim; review before sharing")
     args = parser.parse_args(argv)
     state = args.state_dir.absolute()
     try:
         if args.command == "init":
             initialize(state, args.console, args.network_version)
+        elif args.command == "bundle":
+            private_dir(state)
+            build_handoff(state, args.collection, args.context)
         else:
             if not state.is_dir():
                 raise ValueError("Run init first.")
@@ -375,13 +466,17 @@ def main(argv=None):
                 try:
                     if args.command == "check":
                         collector.check()
-                    elif args.command == "collect":
+                    elif args.command in ("collect", "handoff"):
                         collector.collect()
+                        if args.command == "handoff" and args.samples:
+                            collector.telemetry(args.samples, args.interval)
                     else:
                         collector.telemetry(args.samples, args.interval)
                     status = "completed_with_gaps" if collector.gaps else "completed"
                 finally:
                     collector.finish(status)
+                    if args.command == "handoff":
+                        build_handoff(state, collector.folder, args.context)
     except (OSError, ValueError, KeyError, http.client.HTTPException, KeyboardInterrupt) as error:
         # Error strings from sockets/JSON are safe; never print HTTP response bodies or credentials.
         print(f"Error: {error}", file=sys.stderr)

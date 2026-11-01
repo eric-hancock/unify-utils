@@ -1,5 +1,6 @@
 # All generated configuration, credentials, certificate pins, and evidence.
 .local/
+.local-context.md
 .secrets/
 private-evidence/
 console-certificate.*

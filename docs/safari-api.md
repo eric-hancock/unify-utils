@@ -2,6 +2,8 @@
 
 Use Safari for manual console setup and a Python utility for repeatable local API collection. **The script does not control Safari or reuse its cookies.** Its API key is a separate authentication mechanism. For signed-in page extraction without screenshots, use the [Chrome path](chrome.md).
 
+For guided setup that produces an evidence package and offline Codex prompt, start with **[Local script → Codex handoff](local-handoff.md)**. The steps below document the individual commands for users who prefer explicit setup and control.
+
 ## 1. Identify the installation
 
 Connect the computer to the trusted home LAN. Find:

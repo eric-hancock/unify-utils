@@ -2,14 +2,27 @@
 
 Practical tools and walkthroughs for reviewing a home **Ubiquiti UniFi** network with Codex: security configuration, WiFi reliability, and performance evidence.
 
-Two workflows came out of a real console investigation. Both start with reading configuration; changes and active tests are separate decisions.
+Three workflows grew out of a real console investigation. Each starts with reading configuration; changes and active tests are separate decisions.
 
 | Workflow | Best for | What you need |
 | --- | --- | --- |
 | **[Chrome: inspect the console directly](docs/chrome.md)** | Easiest setup; settings that the API doesn't expose | A supported Codex/ChatGPT desktop browser connection, official Chrome extension, and your signed-in console |
 | **[Safari + local API collector](docs/safari-api.md)** | Structured, repeatable evidence without connecting a browser | Safari for manual console setup; Python 3.10+; a local Network API key and console network access |
+| **[Local script → Codex handoff](docs/local-handoff.md)** | Collect first, analyze later; no browser automation or Codex access to the console | Python 3.10+, local Network API access, then Codex only when you choose to share the reviewed bundle |
 
-The Safari workflow **does not automate or scrape Safari**. Python queries the local official API, and Safari supplies the settings/setup UI. Screenshots or selected exports fill API coverage gaps. Chrome can reduce that manual work by reading signed-in page content directly.
+The Safari workflow **does not automate or scrape Safari**. Python queries the local official API, and Safari supplies the settings/setup UI. Screenshots or selected exports fill API coverage gaps. Chrome can reduce that manual work by reading signed-in page content directly. The local-handoff path uses the same collector with guided setup and produces a private evidence package and analysis prompt; it does not contact OpenAI or require an OpenAI API key.
+
+## Just collect locally and hand the results to Codex
+
+After cloning this repository, run:
+
+```sh
+python3 scripts/collect_for_codex.py
+```
+
+The guided script asks for your console origin, installed Network version, certificate trust choice, and local UniFi API key (hidden input). It reuses existing setup when available, collects read-only configuration plus three passive statistics samples, and prints a private handoff folder and optional ZIP. Typical sampling adds about 30 seconds; no speed test or RF scan runs.
+
+Review the generated evidence and context, then give **only that handoff folder** to local Codex and paste its `CODEX-PROMPT.md`. For a different environment, attach the reviewed handoff files/ZIP if supported. Nothing is uploaded automatically, and the package excludes the saved key, state configuration file, certificate-pin file, downloaded spec, and unrelated files. Evidence still contains private network identifiers; it is not anonymous or encrypted. See the [complete local-handoff walkthrough](docs/local-handoff.md).
 
 ## Start here
 
