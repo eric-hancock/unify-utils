@@ -1,0 +1,2 @@
+# Optional MCP dependencies; the standalone collector stays standard-library only.
+mcp==2.3.0
